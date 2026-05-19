@@ -297,7 +297,6 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
         this->target_view = target_view;
         this->mask_node = mask;
         this->decorated_toplevel = decorated_toplevel;
-        target_view->get_output()->connect(&move_request);
 
         on_commit.set_callback([=] (void*)
         {
@@ -358,25 +357,14 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
 
         //masked->allowed = wf::geometry_t{-100000, -10000, 10000000, 1000000};
         masked->allowed = bbox;
-        auto target_box = target_view->get_bounding_box();
-        auto target_offset = wf::point_t{margin_left + margin_shadow, margin_top};
-        target_box.x = target_offset.x;
-        target_box.y = target_offset.y;
-        target_box.width -= margin_left + margin_right + margin_shadow * 2;
-        target_box.height -= margin_top + margin_bottom + margin_shadow * 2;
-        wf::region_t cut_out = target_box;
+        wf::region_t cut_out = wf::geometry_t {
+            .x = bbox.x + margin_left + margin_shadow,
+            .y = bbox.y + margin_top,
+            .width = bbox.width - margin_left - margin_right - margin_shadow * 2,
+            .height = bbox.height - margin_top - margin_bottom - margin_shadow * 2,
+        };
         masked->allowed ^= cut_out;
     }
-
-    wf::signal::connection_t<wf::view_move_request_signal> move_request =
-        [=] (wf::view_move_request_signal *ev)
-    {LOGI("move_request");
-        if (ev->view->get_app_id() != "org.wf.sample-decorator")
-        {LOGI("move_request returning");
-            return;
-        }
-        target_view->get_output()->connect(&move_request);
-    };
 
   private:
     wf::scene::surface_state_t pending_state;

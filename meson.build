@@ -13,9 +13,8 @@ project(
 	],
 )
 
-gtk3 = dependency('gtk+-3.0')
+gtk4 = dependency('gtk4')
 wayfire = dependency('wayfire')
-wlroots = dependency('wlroots')
 wayland_client = dependency('wayland-client')
 wayland_server = dependency('wayland-server')
 
@@ -23,5 +22,5 @@ project_args = ['-DWLR_USE_UNSTABLE']
 add_project_arguments(project_args, language: ['cpp', 'c'])
 
 subdir('proto')
-subdir('wf-gtk3-decor')
+subdir('wf-gtk4-client')
 subdir('wf-plugin')

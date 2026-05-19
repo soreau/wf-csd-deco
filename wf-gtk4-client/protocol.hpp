@@ -1,7 +1,7 @@
 #ifndef PROTOCOL_HPP
 #define PROTOCOL_HPP
 
-#include <gdk/gdkwayland.h>
+#include <gdk/wayland/gdkwayland.h>
 #include <gtk/gtk.h>
 #include <string>
 

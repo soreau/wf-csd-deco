@@ -312,7 +312,15 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
 
         on_destroy.set_callback([=] (void*)
         {
+            on_commit.disconnect();
+            on_destroy.disconnect();
+            on_request_move.disconnect();
+            on_request_resize.disconnect();
+            on_request_maximize.disconnect();
+            on_request_minimize.disconnect();
+
             this->toplevel = nullptr;
+
             switch (deco_state)
             {
                 case gtk4_decoration_tx_state::STABLE:
@@ -326,6 +334,8 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
                   wf::txn::emit_object_ready(this);
                   break;
             }
+
+            target_view->close();
         });
 
         on_request_move.set_callback([=] (void*)
@@ -338,10 +348,22 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
             wf::get_core().default_wm->resize_request(wf::toplevel_cast(target_view));
         });
 
+        on_request_maximize.set_callback([=] (void*)
+        {
+            wf::get_core().default_wm->tile_request(wf::toplevel_cast(target_view), wf::toplevel_cast(target_view)->pending_tiled_edges() ? 0 : wf::TILED_EDGES_ALL);
+        });
+
+        on_request_minimize.set_callback([=] (void*)
+        {
+            wf::get_core().default_wm->minimize_request(wf::toplevel_cast(target_view), !wf::toplevel_cast(target_view)->minimized);
+        });
+
         on_request_move.connect(&toplevel->events.request_move);
         on_request_resize.connect(&toplevel->events.request_resize);
+        on_request_maximize.connect(&toplevel->events.request_maximize);
+        on_request_minimize.connect(&toplevel->events.request_minimize);
         on_commit.connect(&toplevel->base->surface->events.commit);
-        on_destroy.connect(&toplevel->base->events.destroy);
+        on_destroy.connect(&toplevel->events.destroy);
     }
 
   private:
@@ -374,7 +396,8 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
     decoration_node_t deco_node;
     wayfire_view target_view;
 
-    wf::wl_listener_wrapper on_commit, on_destroy, on_request_move, on_request_resize;
+    wf::wl_listener_wrapper on_commit, on_destroy;
+    wf::wl_listener_wrapper on_request_move, on_request_resize, on_request_maximize, on_request_minimize;
     gtk4_decoration_tx_state deco_state = gtk4_decoration_tx_state::STABLE;
 };
 

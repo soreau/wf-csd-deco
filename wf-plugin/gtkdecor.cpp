@@ -50,18 +50,18 @@
 
 #define PRIV_COMMIT "_gtk4-deco-priv-commit"
 
-static constexpr int margin_left = 1;
-static constexpr int margin_top = 54;
-static constexpr int margin_right = 1;
-static constexpr int margin_bottom = 1;
-static constexpr int margin_shadow = 15;
+static int margin_left = 0;
+static int margin_top = 0;
+static int margin_right = 0;
+static int margin_bottom = 0;
+static int margin_shadow = 0;
 
-static constexpr wf::decoration_margins_t deco_margins =
+static wf::decoration_margins_t deco_margins =
 {
-    .left = 2,
-    .right = 2,
-    .bottom = 2,
-    .top = 54,
+    .left = 0,
+    .right = 0,
+    .bottom = 0,
+    .top = 0,
 };
 
 using decoration_node_t = std::shared_ptr<wf::scene::wlr_surface_node_t>;
@@ -358,10 +358,10 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
         //masked->allowed = wf::geometry_t{-100000, -10000, 10000000, 1000000};
         masked->allowed = bbox;
         wf::region_t cut_out = wf::geometry_t {
-            .x = bbox.x + margin_left + margin_shadow,
+            .x = bbox.x + margin_left,
             .y = bbox.y + margin_top,
-            .width = bbox.width - margin_left - margin_right - margin_shadow * 2,
-            .height = bbox.height - margin_top - margin_bottom - margin_shadow * 2,
+            .width = bbox.width - margin_left - margin_right,
+            .height = bbox.height - margin_top - margin_bottom - 3,
         };
         masked->allowed ^= cut_out;
     }
@@ -384,10 +384,20 @@ static bool begins_with(const std::string& a, const std::string& b)
 }
 
 static const std::string gtk_decorator_prefix = "__wf_decorator:";
+std::shared_ptr<wf::scene::translation_node_t> decoration_root_node;
+static bool use_csd;
+wayfire_toplevel_view target_toplevel_view;
+wf::point_t margin_offset;
 
-void do_update_borders(wl_client*, struct wl_resource*, uint32_t, uint32_t, uint32_t, uint32_t)
+void do_update_borders(wl_client*, struct wl_resource*, uint32_t top, uint32_t bottom, uint32_t left, uint32_t right)
 {
-    /* TODO: implement update_borders */
+    margin_top = top;
+    margin_bottom = bottom;
+    margin_left = left;
+    margin_right = right;
+    deco_margins.top = top - bottom + 2;
+    decoration_root_node->set_offset({use_csd ? -(margin_left - margin_offset.x) : -margin_left, use_csd ? -(margin_top - margin_offset.y) : -margin_top});
+    wf::get_core().tx_manager->schedule_object(target_toplevel_view->toplevel());
 }
 
 const struct wf_decorator_manager_interface decorator_implementation =
@@ -438,6 +448,9 @@ class gtk4_decoration_plugin : public wf::plugin_interface_t
             }
         }
 
+        use_csd = !target->should_be_decorated();
+        target_toplevel_view = target;
+
         if (!target)
         {
             LOGI("View is gone already?");
@@ -464,8 +477,8 @@ class gtk4_decoration_plugin : public wf::plugin_interface_t
 
         auto data = target->toplevel()->get_data_safe<gtk4_toplevel_custom_data>();
 
-        auto decoration_root_node = std::make_shared<wf::scene::translation_node_t>();
-        decoration_root_node->set_offset({-(margin_left + margin_shadow), -(margin_top)});
+        decoration_root_node = std::make_shared<wf::scene::translation_node_t>();
+        //decoration_root_node->set_offset({-(margin_left + margin_shadow), -(margin_top + margin_shadow)});
         auto mask_node = std::make_shared<gtk4_mask_node_t>();
         decoration_root_node->set_children_list({mask_node});
 
@@ -473,7 +486,7 @@ class gtk4_decoration_plugin : public wf::plugin_interface_t
         data->decoration = std::make_shared<gtk4_decoration_object_t>(
             wlr_xdg_toplevel_try_from_wlr_surface(surface), target, deco_surf, mask_node, target->toplevel());
         mask_node->set_children_list({deco_surf});
-        wf::scene::add_back(target->get_surface_root_node(), decoration_root_node);
+        wf::scene::add_front(target->get_surface_root_node(), decoration_root_node);
 
         target->toplevel()->connect(&on_object_ready);
         // Trigger a new transaction to set margins
@@ -486,6 +499,9 @@ class gtk4_decoration_plugin : public wf::plugin_interface_t
         {
             ev->override_implementation = true;
             init_decor(ev->view, ev->surface);
+            wlr_server_decoration_manager_set_default_mode(
+                wf::get_core().protocols.decorator_manager,
+                WLR_SERVER_DECORATION_MANAGER_MODE_SERVER);
             return;
         }
     };
@@ -506,7 +522,14 @@ class gtk4_decoration_plugin : public wf::plugin_interface_t
         LOGI("Need decoration for ", ev->view);
         if (decorator_resource)
         {
+            wlr_server_decoration_manager_set_default_mode(
+                wf::get_core().protocols.decorator_manager,
+                WLR_SERVER_DECORATION_MANAGER_MODE_CLIENT);
             wf_decorator_manager_send_create_new_decoration(decorator_resource, ev->view->get_id());
+            auto bg = ev->view->get_bounding_box();
+            auto vg = wf::toplevel_cast(ev->view)->get_geometry();
+            margin_offset.x = vg.x - bg.x;
+            margin_offset.y = vg.y - bg.y;
         }
     };
 

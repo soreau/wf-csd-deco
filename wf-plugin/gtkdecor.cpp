@@ -50,6 +50,8 @@
 
 #define PRIV_COMMIT "_gtk4-deco-priv-commit"
 
+void create_xdg_popup(wlr_xdg_popup *popup);
+
 static int margin_left = 0;
 static int margin_top = 0;
 static int margin_right = 0;
@@ -314,6 +316,7 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
         {
             on_commit.disconnect();
             on_destroy.disconnect();
+            on_new_popup.disconnect();
             on_request_move.disconnect();
             on_request_resize.disconnect();
             on_request_maximize.disconnect();
@@ -358,10 +361,28 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
             wf::get_core().default_wm->minimize_request(wf::toplevel_cast(target_view), !wf::toplevel_cast(target_view)->minimized);
         });
 
+        on_new_popup.set_callback([=] (void *data)
+        {
+            auto popup = (decltype(toplevel->base->popup)) data;
+
+            if (!popup)
+            {
+                return;
+            }
+            if (deco_node->get_surface() != popup->parent)
+            {
+                return;
+            }
+
+            popup->parent = target_view->get_wlr_surface();
+            create_xdg_popup(popup);
+        });
+
         on_request_move.connect(&toplevel->events.request_move);
         on_request_resize.connect(&toplevel->events.request_resize);
         on_request_maximize.connect(&toplevel->events.request_maximize);
         on_request_minimize.connect(&toplevel->events.request_minimize);
+        on_new_popup.connect(&wlr_xdg_surface_try_from_wlr_surface(deco_node->get_surface())->client->shell->events.new_popup);
         on_commit.connect(&toplevel->base->surface->events.commit);
         on_destroy.connect(&toplevel->events.destroy);
     }
@@ -396,7 +417,7 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
     decoration_node_t deco_node;
     wayfire_view target_view;
 
-    wf::wl_listener_wrapper on_commit, on_destroy;
+    wf::wl_listener_wrapper on_commit, on_destroy, on_new_popup;
     wf::wl_listener_wrapper on_request_move, on_request_resize, on_request_maximize, on_request_minimize;
     gtk4_decoration_tx_state deco_state = gtk4_decoration_tx_state::STABLE;
 };

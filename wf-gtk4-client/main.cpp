@@ -1,8 +1,14 @@
+#include <algorithm>
 #include "protocol.hpp"
+
 GtkApplication *app;
-GtkWidget *window;
-GtkWidget *area;
-gulong size_allocate_signal;
+
+struct custom_data
+{
+    GtkWidget *window;
+    GtkWidget *area;
+    gulong size_allocate_signal;
+};
 
 static void activate(GtkApplication* app, gpointer)
 {
@@ -12,9 +18,30 @@ static void activate(GtkApplication* app, gpointer)
     g_application_hold(G_APPLICATION(app));
 }
 
-static void size_allocate(GObject *, GParamSpec *, gpointer)
+static gboolean on_close_request(GtkWindow *window, gpointer data)
+{
+    GtkWidget *win = (GtkWidget *) data;
+    auto it = std::find_if(view_to_decor.begin(), view_to_decor.end(),
+    [&win](const std::pair<uint32_t, GtkWidget *>& element)
+    {
+        return element.second == win;
+    });
+
+    if (it != view_to_decor.end())
+    {
+        uint32_t id = it->first;
+        view_to_decor.erase(id);
+    }
+
+    return false;
+}
+
+static void size_allocate(GObject *, GParamSpec *, gpointer data)
 {
 	printf("size_allocate\n");
+	auto cdata = (custom_data *) data;
+	auto win = cdata->window;
+	auto area = cdata->area;
     GtkNative *native = gtk_widget_get_native(area);
 
     double surface_x, surface_y;
@@ -28,9 +55,20 @@ static void size_allocate(GObject *, GParamSpec *, gpointer)
     double width = bounds.size.width;
     double height = bounds.size.height;
 
-    update_borders(final_y, final_x, final_x, final_x);
+    auto it = std::find_if(view_to_decor.begin(), view_to_decor.end(),
+    [&win](const std::pair<uint32_t, GtkWidget *>& element)
+    {
+        return element.second == win;
+    });
 
-    g_signal_handler_disconnect(window, size_allocate_signal);
+    if (it != view_to_decor.end())
+    {
+        uint32_t id = it->first;
+        update_borders(id, final_y, final_x, final_x, final_x);
+    }
+
+    free(cdata);
+    g_signal_handler_disconnect(win, cdata->size_allocate_signal);
 }
 
 static void on_menu_action(GSimpleAction *action, GVariant *parameter, gpointer user_data)
@@ -40,12 +78,16 @@ static void on_menu_action(GSimpleAction *action, GVariant *parameter, gpointer 
 
 GtkWidget *create_deco_window(std::string title)
 {
-    window = gtk_application_window_new(app);
+    auto window = gtk_application_window_new(app);
     gtk_window_set_default_size(GTK_WINDOW(window), 300, 300);
-    area = gtk_drawing_area_new();
+    auto area = gtk_drawing_area_new();
     gtk_window_set_child(GTK_WINDOW(window), area);
     gtk_window_set_title(GTK_WINDOW(window), title.c_str());
-    size_allocate_signal = g_signal_connect(window, "notify::default-width", G_CALLBACK(size_allocate), NULL);
+    auto data = (custom_data *) malloc(sizeof(custom_data));
+    data->window = window;
+    data->area = area;
+    data->size_allocate_signal = g_signal_connect(window, "notify::default-width", G_CALLBACK(size_allocate), data);
+    g_signal_connect(window, "close-request", G_CALLBACK(on_close_request), window);
 
     GtkWidget *header = gtk_header_bar_new();
     gtk_window_set_titlebar(GTK_WINDOW(window), header);

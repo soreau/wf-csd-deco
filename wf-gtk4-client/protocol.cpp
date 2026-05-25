@@ -3,12 +3,10 @@
 #include <wayland-client.h>
 #include <string.h>
 #include <iostream>
-#include <map>
 
 wl_display *display;
 wf_decorator_manager *decorator_manager;
 
-std::map<uint32_t, GtkWidget*> view_to_decor;
 static void create_new_decoration(void*, wf_decorator_manager*, uint32_t view)
 {
     std::cout << "create new decoration" << std::endl;
@@ -52,9 +50,9 @@ static struct wl_registry_listener registry_listener =
     &registry_remove_object
 };
 
-void update_borders(uint32_t top, uint32_t bottom, uint32_t left, uint32_t right)
+void update_borders(uint32_t id, uint32_t top, uint32_t bottom, uint32_t left, uint32_t right)
 {
-    wf_decorator_manager_update_borders(decorator_manager, top, bottom, left, right);
+    wf_decorator_manager_update_borders(decorator_manager, id, top, bottom, left, right);
 }
 
 void setup_protocol(GdkDisplay *displ)

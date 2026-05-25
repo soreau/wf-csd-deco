@@ -323,6 +323,7 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
             if (last_size == desired)
             {
                 on_deco_commit.disconnect();
+                return;
             }
             auto tg = wf::toplevel_cast(target_view)->get_geometry();
             if (!target_view->get_wlr_surface())
@@ -469,10 +470,13 @@ class gtk4_decoration_object_t : public wf::txn::transaction_object_t
 
     void handle_maximize()
     {
-        if (wf::toplevel_cast(target_view)->pending_tiled_edges())
+        if (wf::toplevel_cast(target_view)->pending_tiled_edges() == wf::TILED_EDGES_ALL)
         {
             root_node->set_offset({-margin_left, -margin_top});
-		} else
+		} else if (wf::toplevel_cast(target_view)->pending_tiled_edges())
+		{
+            root_node->set_offset({use_csd ? -(margin_left - margin_offset.x - margin_offset.x / 2 + 1) : -margin_left, use_csd ? -(margin_top - margin_offset.y - margin_offset.y / 2 - 2) : -margin_top});
+        } else
 		{
             root_node->set_offset({use_csd ? -(margin_left - margin_offset.x) : -margin_left, use_csd ? -(margin_top - margin_offset.y) : -margin_top});
         }

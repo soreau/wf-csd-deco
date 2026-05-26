@@ -67,8 +67,8 @@ static void size_allocate(GObject *, GParamSpec *, gpointer data)
         update_borders(id, final_y, final_x, final_x, final_x);
     }
 
-    free(cdata);
     g_signal_handler_disconnect(win, cdata->size_allocate_signal);
+    free(cdata);
 }
 
 static void on_menu_action(GSimpleAction *action, GVariant *parameter, gpointer user_data)

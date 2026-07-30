@@ -37,32 +37,47 @@ QString qt6DecoCfgPath;
 // Global data
 QMap<uint32_t, QWidget*> view_to_decor;
 
-static QPainterPath getBorderPath(QRectF rect, qreal radius, qreal penSize, qreal shadowSize)
+static QPainterPath getBorderPath(QRectF rect, qreal radius, qreal penSize, qreal shadowSize,
+    uint32_t tiledEdges)
 {
     QPainterPath path;
+
     path.setFillRule(Qt::WindingFill);
 
     qreal halfBorderSize = penSize / 2.0;
     qreal offset = halfBorderSize;
 
-    if (penSize >= 2.0)
+    // No rounded corners when tiled
+    if (tiledEdges != 0)
     {
-        QRectF borderRect = QRectF(shadowSize - halfBorderSize, shadowSize - halfBorderSize,
-            rect.width() + penSize, rect.height() + penSize).adjusted(penSize, penSize, -penSize, -penSize);
-        path.addRoundedRect(borderRect, radius, radius);
+        path.addRect(rect.adjusted(offset, offset, -offset, -offset));
     } else
     {
-        QRectF topRect = QRectF(shadowSize - halfBorderSize, shadowSize - halfBorderSize,
-            rect.width() + penSize, rect.height() + penSize).adjusted(penSize, penSize,
-            -penSize, -penSize);
-        QRectF bottomRect =
-            QRectF(shadowSize, shadowSize + radius, rect.width(), rect.height() - radius).adjusted(offset,
-                offset,
-                -offset,
-                -offset);
+        if (penSize >= 2.0)
+        {
+            QRectF borderRect = QRectF(
+                shadowSize - halfBorderSize,
+                shadowSize - halfBorderSize,
+                rect.width() + penSize,
+                rect.height() + penSize).adjusted(penSize, penSize, -penSize, -penSize);
+            path.addRoundedRect(borderRect, radius, radius);
+        } else
+        {
+            QRectF topRect = QRectF(
+                shadowSize - halfBorderSize,
+                shadowSize - halfBorderSize,
+                rect.width() + penSize,
+                rect.height() + penSize).adjusted(penSize, penSize, -penSize, -penSize);
 
-        path.addRoundedRect(topRect, radius, radius);
-        path.addRect(bottomRect);
+            QRectF bottomRect = QRectF(
+                shadowSize,
+                shadowSize + radius,
+                rect.width(),
+                rect.height() - radius).adjusted(offset, offset, -offset, -offset);
+
+            path.addRoundedRect(topRect, radius, radius);
+            path.addRect(bottomRect);
+        }
     }
 
     return path.simplified();
@@ -96,6 +111,17 @@ DecorationWindow::DecorationWindow(uint32_t id, QWidget *parent) :
         update_borders(wf_id, relative_position.y() + settings->shadowSize, 0,
             settings->shadowSize + settings->borderSize, settings->shadowSize + settings->borderSize,
             settings->shadowSize + settings->borderSize);
+
+        /** Show show only if it has finite borders */
+        if (settings->shadowSize)
+        {
+            drawShadow();
+        }
+        /** Disable shadows when shadow radius is zero */
+        else
+        {
+            setGraphicsEffect(nullptr);
+        }
 
         repaint();
     });
@@ -567,6 +593,16 @@ void DecorationWindow::updateCursorShape(const QPoint & pos)
     }
 }
 
+void DecorationWindow::drawShadow()
+{
+    QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(base);
+    shadow->setBlurRadius(settings->shadowSize);
+    shadow->setColor(settings->shadowColor);
+    shadow->setOffset(0);
+
+    setGraphicsEffect(shadow);
+}
+
 void DecorationWindow::mousePressEvent(QMouseEvent *event)
 {
     if ((event->button() == Qt::LeftButton) && !isOverButtons() && !iconLbl->underMouse() &&
@@ -609,7 +645,8 @@ void DecorationWindow::paintEvent(QPaintEvent *event)
     painter.setBrush(settings->baseColor);
 
     // painter.drawPath(getBorderPath(QRectF(0, 0, width(), height()), radius, settings->borderSize));
-    painter.drawPath(getBorderPath(base->geometry(), radius, settings->borderSize, settings->shadowSize));
+    painter.drawPath(getBorderPath(base->geometry(), radius, settings->borderSize, settings->shadowSize,
+        tiledEdges));
 
     painter.end();
 }
@@ -657,6 +694,8 @@ void DecorationWindow::notifyTiledEdges(uint32_t edges)
     {
         return;
     }
+
+    qDebug() << "Tiling state changed:" << edges;
 
     if (edges)
     {

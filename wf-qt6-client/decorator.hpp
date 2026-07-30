@@ -93,6 +93,7 @@ class DecorationWindow : public QWidget
 
     Qt::Edges getEdgesAt(const QPoint & pos);
     void updateCursorShape(const QPoint & pos);
+    void drawShadow();
 
     QPointer<Settings> settings;
 

@@ -82,6 +82,23 @@ wf::decoration_margins_t deco_margins =
     .top    = 0,
 };
 
+class windowed_geometry_data_t : public wf::custom_data_t
+{
+  public:
+    bool is_grabbed = false;
+
+    /** Last geometry the view has had in non-tiled and non-fullscreen state.
+     * -1 as width/height means that no such geometry has been stored. */
+    wf::geometry_t last_windowed_geometry = {0, 0, -1, -1};
+
+    /**
+     * The workarea when last_windowed_geometry was stored. This is used
+     * for ex. when untiling a view to determine its geometry relative to the
+     * (potentially changed) workarea of its output.
+     */
+    wf::geometry_t windowed_geometry_workarea = {0, 0, -1, -1};
+};
+
 using decoration_node_t = std::shared_ptr<wf::scene::wlr_surface_node_t>;
 std::unique_ptr<wf::scene::render_instance_manager_t> instance_manager = nullptr;
 
@@ -684,7 +701,8 @@ class csd_decoration_object_t : public wf::txn::transaction_object_t
                             value_or({0, 0, -1, -1});
                     if (test_geometry.width == -1)
                     {
-                        wf::get_core().default_wm->update_last_windowed_geometry(wf::toplevel_cast(v));
+                        auto windowed = v->get_data_safe<windowed_geometry_data_t>();
+                        windowed->last_windowed_geometry = target_geometry;
                     }
                 } else
                 {

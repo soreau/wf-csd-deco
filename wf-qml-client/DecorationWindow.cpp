@@ -16,6 +16,8 @@ void DecorationWindow::setup_items()
     QVariantMap props;
     props.insert("titleBarHeight", 40);
     props.insert("borderWidth", 8);
+    auto app_id = getAppId();
+    auto title  = getWindowTitle();
     if (m_item)
     {
         m_item->deleteLater();
@@ -30,6 +32,15 @@ void DecorationWindow::setup_items()
     connect(m_item, SIGNAL(border_2()), this, SLOT(set_theme_2()));
     m_item->setParentItem(contentItem());
     m_item->setSize(size());
+    if (!app_id.empty())
+    {
+        setAppId(QString::fromStdString(app_id));
+    }
+
+    if (!title.empty())
+    {
+        setWindowTitle(QString::fromStdString(title));
+    }
 }
 
 /** Set border theme 1 */
@@ -81,13 +92,13 @@ void DecorationWindow::setWindowTitle(const QString& title)
 /** Get app ID */
 std::string DecorationWindow::getAppId()
 {
-    return m_item->property("app_id").toString().toStdString();
+    return m_item ? m_item->property("app_id").toString().toStdString() : "";
 }
 
 /** Get window title */
 std::string DecorationWindow::getWindowTitle()
 {
-    return m_item->property("title").toString().toStdString();
+    return m_item ? m_item->property("title").toString().toStdString() : "";
 }
 
 /** Close event */

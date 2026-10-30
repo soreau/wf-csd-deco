@@ -78,13 +78,9 @@ Rectangle{
             id:menuButton
             anchors{top:parent.top;bottom:parent.bottom;left:icon.right;margins:8}
             background:Rectangle{
-                color:'blue'
+                color:'green'
                 radius:8
                 border.width:1
-                Rectangle{
-                    anchors{fill:parent;margins:1}
-                    radius:8
-                }
             }
             width:height
             layer{
@@ -125,13 +121,9 @@ Rectangle{
             id:closeButton
             anchors{top:parent.top;bottom:parent.bottom;right:parent.right;margins:8}
             background:Rectangle{
-                color:'red'
+                color:'gray'
                 radius:8
                 border.width:1
-                Rectangle{
-                    anchors{fill:parent;margins:1}
-                    radius:8
-                }
             }
             width:height
             layer{
@@ -149,13 +141,9 @@ Rectangle{
             id:maxButton
             anchors{top:parent.top;bottom:parent.bottom;right:closeButton.left;margins:8}
             background:Rectangle{
-                color:'green'
+                color:'orange'
                 radius:8
                 border.width:1
-                Rectangle{
-                    anchors{fill:parent;margins:1}
-                    radius:8
-                }
             }
             width:height
             layer{
@@ -173,13 +161,9 @@ Rectangle{
             id:minButton
             anchors{top:parent.top;bottom:parent.bottom;right:maxButton.left;margins:8}
             background:Rectangle{
-                color:'yellow'
+                color:'cyan'
                 radius:8
                 border.width:1
-                Rectangle{
-                    anchors{fill:parent;margins:1}
-                    radius:8
-                }
             }
             width:height
             layer{

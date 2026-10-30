@@ -544,11 +544,11 @@ class csd_decoration_object_t : public wf::txn::transaction_object_t
             current_popup = popup;
         });
 
-        on_map_popup.set_callback([=] (void*)
+        on_map_popup.set_callback([=] (
+            void*)
         {
             auto popup = current_popup;
-            popup->base->pending.geometry.y += margin_top - margin_bottom - 5;
-            popup->base->current.geometry.y  = popup->base->pending.geometry.y;
+            popup->base->current.geometry.y = popup->base->pending.geometry.y = popup->base->popup->pending.geometry.y;
         });
 
         on_destroy_popup.set_callback([=] (void*)

@@ -1803,7 +1803,7 @@ class csd_decoration_plugin : public wf::plugin_interface_t
         {
             auto data = wf::toplevel_cast(ev->view)->toplevel()->get_data_safe<csd_toplevel_custom_data>();
 
-            auto bg = ev->view->get_bounding_box();
+            auto bg = ev->view->get_surface_root_node()->get_bounding_box();
             auto vg = wf::toplevel_cast(ev->view)->get_geometry();
             data->margin_offset.x = vg.x - bg.x;
             data->margin_offset.y = vg.y - bg.y;

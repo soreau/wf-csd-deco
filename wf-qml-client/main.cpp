@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
         struct wl_display *display =
             reinterpret_cast<wl_display*>(native->nativeResourceForIntegration("display"));
         setup_protocol(display);
+        a.setQuitOnLastWindowClosed(false);
         return a.exec();
     } else
     {

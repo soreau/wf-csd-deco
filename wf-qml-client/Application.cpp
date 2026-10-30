@@ -3,6 +3,10 @@ Application::Application(int & argc, char **argv) : QGuiApplication(argc, argv)
 {
     setDesktopFileName("org.wf.sample-decorator");
 
+    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+    format.setSwapInterval(0);
+    QSurfaceFormat::setDefaultFormat(format);
+
     m_engine    = new QQmlEngine(this);
     s_component = new QQmlComponent(m_engine, QUrl::fromLocalFile(QML_PATH_1), this);
 
